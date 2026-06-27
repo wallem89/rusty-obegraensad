@@ -1,6 +1,7 @@
 pub const DISPLAY_SIZE: usize = 16;
 pub const BIT_COUNT: usize = DISPLAY_SIZE * DISPLAY_SIZE;
 pub const BYTE_COUNT: usize = BIT_COUNT / 8;
+pub const PWM_PHASE_COUNT: u8 = 16;
 
 #[rustfmt::skip]
 static PIXEL_TO_BIT: [u8; BIT_COUNT] = [
@@ -23,13 +24,13 @@ static PIXEL_TO_BIT: [u8; BIT_COUNT] = [
 ];
 
 pub struct ObegraensadDisplay {
-    pixels: [u8; BYTE_COUNT],
+    pixels: [u8; BIT_COUNT],
 }
 
 impl ObegraensadDisplay {
     pub fn new() -> Self {
         Self {
-            pixels: [0; BYTE_COUNT],
+            pixels: [0; BIT_COUNT],
         }
     }
 
@@ -38,17 +39,60 @@ impl ObegraensadDisplay {
     }
 
     pub fn set_pixel(&mut self, x: u8, y: u8) {
+        self.set_pixel_brightness(x, y, u8::MAX);
+    }
+
+    pub fn set_pixel_brightness(&mut self, x: u8, y: u8, brightness: u8) {
         if x >= DISPLAY_SIZE as u8 || y >= DISPLAY_SIZE as u8 {
             return;
         }
-        let pixel_index = (y << 4) | x;
-        let bit_index = PIXEL_TO_BIT[pixel_index as usize];
-        let byte_index = (bit_index >> 3) as usize;
-        let bit_in_byte = bit_index & 0b0000_0111;
-        self.pixels[byte_index] |= 1u8 << bit_in_byte;
+
+        self.pixels[(y as usize * DISPLAY_SIZE) + x as usize] = brightness;
+    }
+
+    pub fn pixel_brightness(&self, x: u8, y: u8) -> u8 {
+        if x >= DISPLAY_SIZE as u8 || y >= DISPLAY_SIZE as u8 {
+            return 0;
+        }
+
+        self.pixels[(y as usize * DISPLAY_SIZE) + x as usize]
     }
 
     pub fn to_output_buffer(&self, buffer: &mut [u8; BYTE_COUNT]) {
-        buffer.copy_from_slice(&self.pixels);
+        self.to_output_buffer_with_threshold(buffer, 0);
+    }
+
+    /// Serializes one temporal-PWM phase for binary LED-driver hardware.
+    ///
+    /// Call this repeatedly while cycling `phase` from `0..PWM_PHASE_COUNT`.
+    /// Higher brightness values are enabled for more phases.
+    pub fn to_output_buffer_for_pwm_phase(&self, buffer: &mut [u8; BYTE_COUNT], phase: u8) {
+        let threshold =
+            ((phase.min(PWM_PHASE_COUNT - 1) as u16 * 256) / PWM_PHASE_COUNT as u16) as u8;
+        self.to_output_buffer_with_threshold(buffer, threshold);
+    }
+
+    pub fn to_output_buffer_with_threshold(&self, buffer: &mut [u8; BYTE_COUNT], threshold: u8) {
+        buffer.fill(0);
+
+        for y in 0..DISPLAY_SIZE as u8 {
+            for x in 0..DISPLAY_SIZE as u8 {
+                if self.pixel_brightness(x, y) <= threshold {
+                    continue;
+                }
+
+                let pixel_index = (y << 4) | x;
+                let bit_index = PIXEL_TO_BIT[pixel_index as usize];
+                let byte_index = (bit_index >> 3) as usize;
+                let bit_in_byte = bit_index & 0b0000_0111;
+                buffer[byte_index] |= 1u8 << bit_in_byte;
+            }
+        }
+    }
+}
+
+impl Default for ObegraensadDisplay {
+    fn default() -> Self {
+        Self::new()
     }
 }
