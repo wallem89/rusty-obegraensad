@@ -6,14 +6,13 @@ This repository is split into a Cargo workspace with separate portable and board
 
 - `core`: `no_std` display buffer, OBEGRÄNSAD pixel mapping, animation trait, built-in animations, and hardware boundary traits.
 - `boards/pico`: Raspberry Pi Pico firmware. This crate owns RP2040 startup, GPIO, SPI, DMA, timer interrupts, and the concrete animation loop.
+- `boards/esp32-s3-devkit-c-1`: ESP32-S3-DevKitC-1 firmware using `esp-hal`. This crate owns ESP32-S3 startup and GPIO output to the OBEGRÄNSAD LED-driver chain.
 
 The boundary between portable code and board code is intentionally small:
 
 - `animation::Animation` renders the next frame into `ObegraensadDisplay` and returns its frame duration.
 - `hardware::DisplayDriver` describes the board-specific transport for writing, latching, and enabling the physical display.
 - `hardware::AnimationSelect` describes board-specific input used to switch animations.
-
-Future ESP32-C6 or ESP32-S3 support should be added as another board crate that depends on `obegraensad-core`.
 
 ## Interfacing with OBEGRÄNSAD
 OBEGRÄNSAD consists of 16 daisy-chained SCT2024 16 bit serial-in/parallel-out constant-current LED drivers.
@@ -38,6 +37,7 @@ To show your custom animation on the display, add it to `core` or another crate 
 The button of the display can be used to cycle through the different animations.
 
 ## Generating a UF2 binary
+### Raspberry Pi Pico
 Ensure that Rust is up-to-date, target support for `thumbv6m-none-eabi` is provided, and elf2uf2-rs is installed:
 ```
 rustup self update
@@ -47,6 +47,25 @@ cargo install elf2uf2-rs
 ```
 
 Execute `cargo run -p obegraensad-pico --release` to generate the UF2 binary at `target/thumbv6m-none-eabi/release/obegraensad-pico.uf2`.
+
+### ESP32-S3-DevKitC-1
+The ESP32-S3 crate targets `xtensa-esp32s3-none-elf` and is intended to be built with the `esp` Rust toolchain:
+```
+cd boards/esp32-s3-devkit-c-1
+cargo +esp check
+cargo +esp run --release
+```
+For release builds and flashing, ensure the ESP Xtensa GCC toolchain is on `PATH`; with `espup`, source the generated export file before running Cargo.
+
+The ESP32-S3 implementation bit-bangs the display using this pin mapping:
+
+- Latch: `GPIO10` on esp32 -> **CLA** on OBEGRÄNSAD PCB
+- Clock: `GPIO12` on esp32 -> **CLK** on OBEGRÄNSAD PCB
+- Data: `GPIO11` on esp32 -> **IN** on OBEGRÄNSAD PCB
+- Inverted enable: `GPIO9` on esp32 ->  **EN** on OBEGRÄNSAD PCB
+- Animation-select button: `GPIO0` on esp32 -> button in OBEGRÄNSAD case
+
+The crate-local Cargo config uses `espflash flash --monitor` as its runner.
 
 ## git setup
 

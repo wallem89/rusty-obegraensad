@@ -1,6 +1,11 @@
 [workspace]
 members = [
     "core",
+    "boards/esp32-s3-devkit-c-1",
+    "boards/pico",
+]
+default-members = [
+    "core",
     "boards/pico",
 ]
 resolver = "2"
