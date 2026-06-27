@@ -1,5 +1,5 @@
 # Rusty OBEGRÄNSAD
-Display custom animations on IKEA's OBEGRÄNSAD using Rust on the Raspberry Pi Pico.
+Display custom animations on IKEA's OBEGRÄNSAD using Rust on the Raspberry Pi Pico or ESP32-S3-DevKitC-1.
 
 ## Crates
 This repository is split into a Cargo workspace with separate portable and board-specific crates:
@@ -16,12 +16,16 @@ The boundary between portable code and board code is intentionally small:
 
 ## Interfacing with OBEGRÄNSAD
 OBEGRÄNSAD consists of 16 daisy-chained SCT2024 16 bit serial-in/parallel-out constant-current LED drivers.
-After de-soldering the on-board microcontroller, the Raspberry Pi Pico can be connected to the Clock, Data In, Latch, and inverted Enable inputs of the SCT2024 chain.
+After de-soldering the on-board microcontroller, the board that you choose can be connected to the Clock, Data In, Latch, and inverted Enable inputs of the SCT2024 chain.
 These inputs as well as +5V and GND can readily be accessed at the bottom of the OBEGRÄNSAD PCB that contained the original microcontroller.
+
+### Raspberry Pi specific
+For the Rasppery Pi Pico you need to convert the 3.3V outputs to 5V outputs.
 In order to interface with the 5V CMOS inputs of the SCT2024, a level shifter is required to translate the 3.3V outputs of the Pico to 5V.
 I assembled a helper board for level shifting using an SN74AHCT125, wired up as shown in the following schematic:
 ![Schematic of level-shifter board](schematic/level-shifter.png)
 
+### Other remarks
 The timings for the SCT2024 are such that the Clock and Data In lines can be driven by SPI.
 To latch the transmitted data to the LEDs, a short positive pulse on the Latch line is required.
 
