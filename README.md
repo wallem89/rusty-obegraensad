@@ -37,6 +37,7 @@ A custom animation for the display should implement the `obegraensad_core::Anima
 The return value of the `render_frame` method indicates for how long this frame should be displayed.
 When implementing this method, you typically want to use `display.clear()` to erase the current contents of the display and then draw your frame using `display.set_pixel(x, y)`.
 
+The core crate currently includes `FallingLeaves`, `Firework`, `MatrixRain`, `Snake`, and `EmptyAnimation`.
 To show your custom animation on the display, add it to `core` or another crate and add a mutable reference to an instance of the animation to the `animations` array in `boards/pico/src/main.rs`.
 The button of the display can be used to cycle through the different animations.
 

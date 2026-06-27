@@ -5,7 +5,10 @@ mod global_state;
 
 use cortex_m::singleton;
 use embedded_hal::digital::{InputPin, OutputPin}; // General Hardware Abstraction Layer (HAL) for embedded systems (https://github.com/rust-embedded/embedded-hal)
-use obegraensad_core::{Animation, EmptyAnimation, FallingLeaves, ObegraensadDisplay, BYTE_COUNT};
+use obegraensad_core::{
+    Animation, EmptyAnimation, FallingLeaves, Firework, MatrixRain, ObegraensadDisplay, Snake,
+    BYTE_COUNT,
+};
 use panic_halt as _;
 use rp_pico::entry; // rp_pico = Board Support Package (BSP; https://github.com/rp-rs/rp-hal-boards/)
 use rp_pico::hal; // Hardware Abstraction Layer (HAL) for Raspberry Silicon (higher-level drivers; https://github.com/rp-rs/rp-hal/)
@@ -106,10 +109,18 @@ fn main() -> ! {
 
     let mut display = ObegraensadDisplay::new();
     let mut animation_leaves = FallingLeaves::new();
+    let mut animation_firework = Firework::new();
+    let mut animation_matrix_rain = MatrixRain::new();
+    let mut animation_snake = Snake::new();
     let mut animation_empty = EmptyAnimation::new();
-    const ANIMATION_COUNT: usize = 2;
-    let animations: [&mut dyn Animation; ANIMATION_COUNT] =
-        [&mut animation_leaves, &mut animation_empty];
+    const ANIMATION_COUNT: usize = 5;
+    let animations: [&mut dyn Animation; ANIMATION_COUNT] = [
+        &mut animation_leaves,
+        &mut animation_firework,
+        &mut animation_matrix_rain,
+        &mut animation_snake,
+        &mut animation_empty,
+    ];
     let mut current_animation_index = 0;
     let mut current_frame_duration = MicrosDurationU32::millis(10);
     let mut dma_spi_transfer = Some(dma_spi_transfer);

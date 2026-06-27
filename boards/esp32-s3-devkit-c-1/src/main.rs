@@ -17,7 +17,8 @@ use esp_hal::{
 use fugit::MicrosDurationU32;
 use obegraensad_core::{
     hardware::{AnimationSelect, DisplayDriver},
-    Animation, EmptyAnimation, FallingLeaves, ObegraensadDisplay, BYTE_COUNT,
+    Animation, EmptyAnimation, FallingLeaves, Firework, MatrixRain, ObegraensadDisplay, Snake,
+    BYTE_COUNT,
 };
 
 esp_bootloader_esp_idf::esp_app_desc!();
@@ -139,10 +140,18 @@ fn main() -> ! {
 
     let mut display = ObegraensadDisplay::new();
     let mut animation_leaves = FallingLeaves::new();
+    let mut animation_firework = Firework::new();
+    let mut animation_matrix_rain = MatrixRain::new();
+    let mut animation_snake = Snake::new();
     let mut animation_empty = EmptyAnimation::new();
-    const ANIMATION_COUNT: usize = 2;
-    let animations: [&mut dyn Animation; ANIMATION_COUNT] =
-        [&mut animation_leaves, &mut animation_empty];
+    const ANIMATION_COUNT: usize = 5;
+    let animations: [&mut dyn Animation; ANIMATION_COUNT] = [
+        &mut animation_leaves,
+        &mut animation_firework,
+        &mut animation_matrix_rain,
+        &mut animation_snake,
+        &mut animation_empty,
+    ];
     let mut current_animation_index = 0;
     let mut current_frame_duration = MicrosDurationU32::millis(10);
 
