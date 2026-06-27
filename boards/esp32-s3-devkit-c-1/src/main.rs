@@ -18,12 +18,13 @@ use fugit::MicrosDurationU32;
 use obegraensad_core::{
     hardware::{AnimationSelect, DisplayDriver},
     Animation, EmptyAnimation, FallingLeaves, Firework, MatrixRain, ObegraensadDisplay, Snake,
-    BYTE_COUNT,
+    BYTE_COUNT, PWM_PHASE_COUNT,
 };
 
 esp_bootloader_esp_idf::esp_app_desc!();
 
 const FRAME_AFTER_ANIMATION_SWITCH: MicrosDurationU32 = MicrosDurationU32::millis(30);
+const PWM_PHASE_DURATION_US: u32 = 1_000;
 
 struct Esp32S3Display<'d> {
     clock: Output<'d>,
@@ -61,9 +62,13 @@ impl<'d> Esp32S3Display<'d> {
 impl DisplayDriver for Esp32S3Display<'_> {
     type Error = Infallible;
 
-    fn write_frame(&mut self, display: &ObegraensadDisplay) -> Result<(), Self::Error> {
+    fn write_frame(
+        &mut self,
+        display: &ObegraensadDisplay,
+        pwm_phase: u8,
+    ) -> Result<(), Self::Error> {
         let mut buffer = [0; BYTE_COUNT];
-        display.to_output_buffer(&mut buffer);
+        display.to_output_buffer_for_pwm_phase(&mut buffer, pwm_phase);
 
         for byte in buffer {
             self.write_byte(byte)?;
@@ -112,6 +117,10 @@ fn delay_micros(us: u32) {
     while delay_start.elapsed() < Duration::from_micros(us as u64) {}
 }
 
+fn frame_duration_us(duration: MicrosDurationU32) -> u32 {
+    duration.to_micros().max(1)
+}
+
 #[panic_handler]
 fn panic(_: &core::panic::PanicInfo) -> ! {
     loop {}
@@ -153,10 +162,10 @@ fn main() -> ! {
         &mut animation_empty,
     ];
     let mut current_animation_index = 0;
-    let mut current_frame_duration = MicrosDurationU32::millis(10);
+    let mut current_frame_remaining_us =
+        frame_duration_us(animations[current_animation_index].render_frame(&mut display));
+    let mut pwm_phase = 0;
 
-    display_driver.write_frame(&display).unwrap();
-    display_driver.latch().unwrap();
     display_driver.set_enabled(true).unwrap();
 
     loop {
@@ -170,15 +179,26 @@ fn main() -> ! {
                 current_animation_index = 0;
             }
 
-            display.clear();
-            current_frame_duration = FRAME_AFTER_ANIMATION_SWITCH;
+            current_frame_remaining_us = frame_duration_us(FRAME_AFTER_ANIMATION_SWITCH);
+            animations[current_animation_index].render_frame(&mut display);
+            pwm_phase = 0;
         }
 
-        display_driver.write_frame(&display).unwrap();
+        display_driver.write_frame(&display, pwm_phase).unwrap();
         display_driver.latch().unwrap();
 
-        let next_frame_duration = animations[current_animation_index].render_frame(&mut display);
-        delay_micros(current_frame_duration.to_micros());
-        current_frame_duration = next_frame_duration;
+        let phase_duration_us = current_frame_remaining_us.min(PWM_PHASE_DURATION_US);
+        delay_micros(phase_duration_us);
+        current_frame_remaining_us -= phase_duration_us;
+
+        pwm_phase += 1;
+        if pwm_phase >= PWM_PHASE_COUNT {
+            pwm_phase = 0;
+        }
+
+        if current_frame_remaining_us == 0 {
+            current_frame_remaining_us =
+                frame_duration_us(animations[current_animation_index].render_frame(&mut display));
+        }
     }
 }

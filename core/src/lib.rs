@@ -15,4 +15,4 @@ pub use animation_firework::Firework;
 pub use animation_leaves::FallingLeaves;
 pub use animation_matrix_rain::MatrixRain;
 pub use animation_snake::Snake;
-pub use display::{ObegraensadDisplay, BYTE_COUNT, DISPLAY_SIZE};
+pub use display::{ObegraensadDisplay, BYTE_COUNT, DISPLAY_SIZE, PWM_PHASE_COUNT};

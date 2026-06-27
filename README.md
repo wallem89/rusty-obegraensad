@@ -35,7 +35,9 @@ While one can derive an algorithm to compute the index of an LED, I found the al
 ## Implementing custom animations
 A custom animation for the display should implement the `obegraensad_core::Animation` trait with its only method `render_frame`.
 The return value of the `render_frame` method indicates for how long this frame should be displayed.
-When implementing this method, you typically want to use `display.clear()` to erase the current contents of the display and then draw your frame using `display.set_pixel(x, y)`.
+When implementing this method, you typically want to use `display.clear()` to erase the current contents of the display and then draw your frame using `display.set_pixel(x, y)` or `display.set_pixel_brightness(x, y, brightness)`.
+Brightness is represented as `0..=255` in `ObegraensadDisplay`.
+The current board crates render brightness on the binary SCT2024 LED-driver chain using 16-phase temporal PWM.
 
 The core crate currently includes `FallingLeaves`, `Firework`, `MatrixRain`, `Snake`, and `EmptyAnimation`.
 To show your custom animation on the display, add it to `core` or another crate and add a mutable reference to an instance of the animation to the `animations` array in `boards/pico/src/main.rs`.

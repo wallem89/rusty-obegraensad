@@ -82,9 +82,9 @@ impl Snake {
         (index % DISPLAY_SIZE as u8, index / DISPLAY_SIZE as u8)
     }
 
-    fn draw_index(display: &mut ObegraensadDisplay, index: u8) {
+    fn draw_index(display: &mut ObegraensadDisplay, index: u8, brightness: u8) {
         let (x, y) = Self::index_to_xy(index);
-        display.set_pixel(x, y);
+        display.set_pixel_brightness(x, y, brightness);
     }
 
     fn draw_game(&self, display: &mut ObegraensadDisplay, draw_snake: bool, draw_dot: bool) {
@@ -92,12 +92,12 @@ impl Snake {
 
         if draw_snake {
             for index in self.position[..self.length].iter() {
-                Self::draw_index(display, *index);
+                Self::draw_index(display, *index, u8::MAX);
             }
         }
 
         if draw_dot {
-            Self::draw_index(display, self.dot);
+            Self::draw_index(display, self.dot, 40);
         }
     }
 

@@ -7,7 +7,7 @@ use cortex_m::singleton;
 use embedded_hal::digital::{InputPin, OutputPin}; // General Hardware Abstraction Layer (HAL) for embedded systems (https://github.com/rust-embedded/embedded-hal)
 use obegraensad_core::{
     Animation, EmptyAnimation, FallingLeaves, Firework, MatrixRain, ObegraensadDisplay, Snake,
-    BYTE_COUNT,
+    BYTE_COUNT, PWM_PHASE_COUNT,
 };
 use panic_halt as _;
 use rp_pico::entry; // rp_pico = Board Support Package (BSP; https://github.com/rp-rs/rp-hal-boards/)
@@ -23,6 +23,13 @@ use fugit::{MicrosDurationU32, RateExtU32};
 use portable_atomic::Ordering;
 
 // TODO: look at https://github.com/knurling-rs/flip-link
+
+const FRAME_AFTER_ANIMATION_SWITCH: MicrosDurationU32 = MicrosDurationU32::millis(30);
+const PWM_PHASE_DURATION_US: u32 = 1_000;
+
+fn frame_duration_us(duration: MicrosDurationU32) -> u32 {
+    duration.to_micros().max(1)
+}
 
 #[entry]
 fn main() -> ! {
@@ -122,7 +129,9 @@ fn main() -> ! {
         &mut animation_empty,
     ];
     let mut current_animation_index = 0;
-    let mut current_frame_duration = MicrosDurationU32::millis(10);
+    let mut current_frame_remaining_us =
+        frame_duration_us(animations[current_animation_index].render_frame(&mut display));
+    let mut pwm_phase = 0;
     let mut dma_spi_transfer = Some(dma_spi_transfer);
     loop {
         // If the button is pressed...
@@ -140,13 +149,10 @@ fn main() -> ! {
             if current_animation_index >= ANIMATION_COUNT {
                 current_animation_index = 0;
             }
-            display.clear();
-            current_frame_duration = MicrosDurationU32::millis(30);
+            current_frame_remaining_us = frame_duration_us(FRAME_AFTER_ANIMATION_SWITCH);
+            animations[current_animation_index].render_frame(&mut display);
+            pwm_phase = 0;
 
-            // re-schedule the alarm
-            global_state::shared_state_interrupt_free(|s| {
-                s.alarm0_schedule(current_frame_duration)
-            });
             global_state::ATOMIC_STATE
                 .transmit_next_frame
                 .store(0, Ordering::Relaxed);
@@ -154,14 +160,19 @@ fn main() -> ! {
 
         // Start to transmit the display content (current frame) via SPI fed via DMA
         let (dma_channel, dma_buffer, spi) = dma_spi_transfer.take().unwrap().wait();
-        display.to_output_buffer(dma_buffer);
+        display.to_output_buffer_for_pwm_phase(dma_buffer, pwm_phase);
         dma_spi_transfer.replace(single_buffer::Config::new(dma_channel, dma_buffer, spi).start());
 
-        // Compute the next frame
-        let next_frame_duration = animations[current_animation_index].render_frame(&mut display);
+        let phase_duration_us = current_frame_remaining_us.min(PWM_PHASE_DURATION_US);
 
-        // Disable the activity LED and sleep until it's time to show the current frame (and to transmit the next frame)
+        // Disable the activity LED and sleep until it's time to latch the current PWM phase
         pin_led.set_low().unwrap();
+        global_state::ATOMIC_STATE
+            .transmit_next_frame
+            .store(0, Ordering::Relaxed);
+        global_state::shared_state_interrupt_free(|s| {
+            s.alarm0_schedule(MicrosDurationU32::micros(phase_duration_us))
+        });
         while global_state::ATOMIC_STATE
             .transmit_next_frame
             .load(Ordering::Relaxed)
@@ -173,22 +184,25 @@ fn main() -> ! {
         // Start pulsing the latch pin to show the current frame
         pin_latch.set_high().unwrap();
 
-        // Reset frame transmission status and re-schedule the timer to determine how long the current frame should be shown
-        global_state::ATOMIC_STATE
-            .transmit_next_frame
-            .store(0, Ordering::Relaxed);
-        global_state::shared_state_interrupt_free(|s| s.alarm0_schedule(current_frame_duration));
-
         // Enable the activity LED
         pin_led.set_high().unwrap();
-
-        // Ensure that upon the next transmission cycle, we display the next frame for the designated amount of time
-        current_frame_duration = next_frame_duration;
 
         // Finish the latch pulse
         cortex_m::asm::nop();
         cortex_m::asm::nop();
         pin_latch.set_low().unwrap();
+
+        current_frame_remaining_us -= phase_duration_us;
+
+        pwm_phase += 1;
+        if pwm_phase >= PWM_PHASE_COUNT {
+            pwm_phase = 0;
+        }
+
+        if current_frame_remaining_us == 0 {
+            current_frame_remaining_us =
+                frame_duration_us(animations[current_animation_index].render_frame(&mut display));
+        }
     }
 }
 

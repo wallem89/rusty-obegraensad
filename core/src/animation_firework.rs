@@ -66,7 +66,7 @@ impl Firework {
         self.state = FireworkState::ExplosionGrow;
     }
 
-    fn draw_explosion(&self, display: &mut ObegraensadDisplay, radius: u8) {
+    fn draw_explosion(&self, display: &mut ObegraensadDisplay, radius: u8, brightness: u8) {
         let radius_squared = (radius as i16) * (radius as i16);
 
         for y in 0..DISPLAY_SIZE as u8 {
@@ -74,7 +74,7 @@ impl Firework {
                 let dx = x as i16 - self.explosion_x as i16;
                 let dy = y as i16 - self.explosion_y as i16;
                 if dx * dx + dy * dy <= radius_squared {
-                    display.set_pixel(x, y);
+                    display.set_pixel_brightness(x, y, brightness);
                 }
             }
         }
@@ -105,7 +105,7 @@ impl Animation for Firework {
                 MicrosDurationU32::millis(Self::ROCKET_DELAY_MS)
             }
             FireworkState::ExplosionGrow => {
-                self.draw_explosion(display, self.radius);
+                self.draw_explosion(display, self.radius, u8::MAX);
                 self.radius += 1;
 
                 if self.radius > self.max_radius {
@@ -115,7 +115,8 @@ impl Animation for Firework {
                 MicrosDurationU32::millis(Self::EXPLOSION_DELAY_MS)
             }
             FireworkState::ExplosionFade => {
-                self.draw_explosion(display, self.max_radius);
+                let brightness = u8::MAX.saturating_sub(self.fade_step.saturating_mul(8));
+                self.draw_explosion(display, self.max_radius, brightness);
                 self.fade_step += 1;
 
                 if self.fade_step >= Self::FADE_STEPS {

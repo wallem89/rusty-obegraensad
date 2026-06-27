@@ -1,5 +1,5 @@
 use crate::animation::Animation;
-use crate::display::{ObegraensadDisplay, BIT_COUNT, DISPLAY_SIZE};
+use crate::display::{ObegraensadDisplay, DISPLAY_SIZE};
 
 use fugit::MicrosDurationU32;
 use rand::{RngCore, SeedableRng};
@@ -26,7 +26,6 @@ impl Column {
 
 pub struct MatrixRain {
     rng: Xoshiro128StarStar,
-    pixels: [u8; BIT_COUNT],
     columns: [Column; DISPLAY_SIZE],
 }
 
@@ -38,7 +37,6 @@ impl MatrixRain {
     pub fn new() -> Self {
         let mut this = Self {
             rng: Xoshiro128StarStar::seed_from_u64(0xA17A_1CE5_0B3E_903D),
-            pixels: [0; BIT_COUNT],
             columns: [Column::new(); DISPLAY_SIZE],
         };
         this.reset_columns();
@@ -60,24 +58,12 @@ impl MatrixRain {
         }
     }
 
-    fn set_brightness(&mut self, x: u8, y: i8, brightness: u8) {
+    fn set_brightness(display: &mut ObegraensadDisplay, x: u8, y: i8, brightness: u8) {
         if x >= DISPLAY_SIZE as u8 || y < 0 || y >= DISPLAY_SIZE as i8 {
             return;
         }
 
-        self.pixels[y as usize * DISPLAY_SIZE + x as usize] = brightness;
-    }
-
-    fn draw(&self, display: &mut ObegraensadDisplay) {
-        display.clear();
-
-        for y in 0..DISPLAY_SIZE as u8 {
-            for x in 0..DISPLAY_SIZE as u8 {
-                if self.pixels[y as usize * DISPLAY_SIZE + x as usize] > 0 {
-                    display.set_pixel(x, y);
-                }
-            }
-        }
+        display.set_pixel_brightness(x, y as u8, brightness);
     }
 }
 
@@ -89,8 +75,13 @@ impl Default for MatrixRain {
 
 impl Animation for MatrixRain {
     fn render_frame(&mut self, display: &mut ObegraensadDisplay) -> MicrosDurationU32 {
-        for pixel in self.pixels.iter_mut() {
-            *pixel = pixel.saturating_sub(Self::FADE_AMOUNT);
+        for y in 0..DISPLAY_SIZE as u8 {
+            for x in 0..DISPLAY_SIZE as u8 {
+                let brightness = display
+                    .pixel_brightness(x, y)
+                    .saturating_sub(Self::FADE_AMOUNT);
+                display.set_pixel_brightness(x, y, brightness);
+            }
         }
 
         for i in 0..DISPLAY_SIZE {
@@ -105,12 +96,12 @@ impl Animation for MatrixRain {
             }
 
             let column = self.columns[i];
-            self.set_brightness(i as u8, column.y, 255);
+            Self::set_brightness(display, i as u8, column.y, 255);
 
             for j in 1..column.length {
                 let trail_y = column.y - j as i8;
                 let brightness = 255 - (j * 255 / column.length);
-                self.set_brightness(i as u8, trail_y, brightness);
+                Self::set_brightness(display, i as u8, trail_y, brightness);
             }
 
             self.columns[i].y += column.speed as i8;
@@ -120,7 +111,6 @@ impl Animation for MatrixRain {
             }
         }
 
-        self.draw(display);
         MicrosDurationU32::millis(Self::FRAME_DELAY_MS)
     }
 }
