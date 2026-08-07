@@ -525,7 +525,7 @@ dependencies = [
  "esp32h2",
  "esp32s2",
  "esp32s3",
- "fugit",
+ "fugit 0.3.7",
  "instability",
  "paste",
  "portable-atomic",
@@ -721,6 +721,15 @@ name = "fugit"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "17186ad64927d5ac8f02c1e77ccefa08ccd9eaa314d5a4772278aa204a22f7e7"
+dependencies = [
+ "gcd",
+]
+
+[[package]]
+name = "fugit"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04ae150b98ef345142101da0a0b4ccfcc577bc8f5b9778b852e9427c667654d3"
 dependencies = [
  "gcd",
 ]
@@ -936,7 +945,7 @@ dependencies = [
 name = "obegraensad-core"
 version = "0.1.0"
 dependencies = [
- "fugit",
+ "fugit 0.4.0",
  "rand",
  "rand_xoshiro",
 ]
@@ -948,7 +957,7 @@ dependencies = [
  "embedded-hal 1.0.0",
  "esp-bootloader-esp-idf",
  "esp-hal",
- "fugit",
+ "fugit 0.4.0",
  "obegraensad-core",
 ]
 
@@ -959,7 +968,7 @@ dependencies = [
  "cortex-m",
  "cortex-m-rt",
  "embedded-hal 1.0.0",
- "fugit",
+ "fugit 0.4.0",
  "obegraensad-core",
  "panic-halt",
  "portable-atomic",
@@ -1079,11 +1088,11 @@ checksum = "46b71a9d9206e8b46714c74255adcaea8b11e0350c1d8456165073c3f75fc81a"
 
 [[package]]
 name = "rand"
-version = "0.8.5"
+version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "34af8d1a0e25924bc5b7c43c079c942339d8f0a8b57c39049bef581b46327404"
+checksum = "c7f5fa3a058cd35567ef9bfa5e75732bee0f9e4c55fa90477bef2dfcdbc4be80"
 dependencies = [
- "rand_core",
+ "rand_core 0.10.1",
 ]
 
 [[package]]
@@ -1093,12 +1102,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
 
 [[package]]
-name = "rand_xoshiro"
-version = "0.6.0"
+name = "rand_core"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6f97cdb2a36ed4183de61b2f824cc45c9f1037f28afe0a322e9fff4c108b5aaa"
+checksum = "63b8176103e19a2643978565ca18b50549f6101881c443590420e4dc998a3c69"
+
+[[package]]
+name = "rand_xoshiro"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "662effc7698e08ea324d3acccf8d9d7f7bf79b9785e270a174ea36e56900c91d"
 dependencies = [
- "rand_core",
+ "rand_core 0.10.1",
 ]
 
 [[package]]
@@ -1167,7 +1182,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b9342d3ac7011ac688300979e9b52a81f0add1d05feb02868cf94bfee0705b28"
 dependencies = [
  "cortex-m-rt",
- "fugit",
+ "fugit 0.3.7",
  "rp2040-boot2",
  "rp2040-hal",
  "usb-device",
@@ -1198,12 +1213,12 @@ dependencies = [
  "embedded-hal-nb",
  "embedded-io 0.6.1",
  "frunk",
- "fugit",
+ "fugit 0.3.7",
  "itertools",
  "nb 1.1.0",
  "paste",
  "pio",
- "rand_core",
+ "rand_core 0.6.4",
  "rp2040-hal-macros",
  "rp2040-pac",
  "usb-device",

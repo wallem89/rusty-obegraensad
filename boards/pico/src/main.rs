@@ -16,8 +16,9 @@ use rp_pico::hal::pac::interrupt;
 use rp_pico::hal::timer::Alarm;
 use rp_pico::hal::Clock;
 
-use fugit::{MicrosDurationU32, RateExtU32};
+use fugit::MicrosDurationU32;
 use portable_atomic::Ordering;
+use rp_pico::hal::fugit::{MicrosDurationU32 as HalMicrosDurationU32, RateExtU32};
 
 // TODO: look at https://github.com/knurling-rs/flip-link
 
@@ -85,7 +86,7 @@ fn main() -> ! {
     let mut timer = hal::Timer::new(pac.TIMER, &mut pac.RESETS, &clocks);
     let mut alarm0 = timer.alarm_0().unwrap();
     alarm0.enable_interrupt();
-    alarm0.schedule(MicrosDurationU32::millis(10)).unwrap();
+    alarm0.schedule(HalMicrosDurationU32::millis(10)).unwrap();
 
     // Finish latch pulse and enable the display
     cortex_m::asm::nop();
@@ -111,7 +112,7 @@ fn main() -> ! {
     let animations: [&mut dyn Animation; ANIMATION_COUNT] =
         [&mut animation_leaves, &mut animation_empty];
     let mut current_animation_index = 0;
-    let mut current_frame_duration = MicrosDurationU32::millis(10);
+    let mut current_frame_duration = MicrosDurationU32::from_millis(10);
     let mut dma_spi_transfer = Some(dma_spi_transfer);
     loop {
         // If the button is pressed...
@@ -130,7 +131,7 @@ fn main() -> ! {
                 current_animation_index = 0;
             }
             display.clear();
-            current_frame_duration = MicrosDurationU32::millis(30);
+            current_frame_duration = MicrosDurationU32::from_millis(30);
 
             // re-schedule the alarm
             global_state::shared_state_interrupt_free(|s| {

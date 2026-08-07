@@ -6,6 +6,7 @@ use rp_pico::hal;
 
 use fugit::MicrosDurationU32;
 use portable_atomic::AtomicU8;
+use rp_pico::hal::fugit::MicrosDurationU32 as HalMicrosDurationU32;
 
 pub static SHARED_STATE: Mutex<RefCell<Option<SharedState>>> = Mutex::new(RefCell::new(None));
 pub static ATOMIC_STATE: AtomicState = AtomicState::new();
@@ -42,7 +43,9 @@ pub struct SharedState {
 
 impl SharedState {
     pub fn alarm0_schedule(&mut self, duration: MicrosDurationU32) {
-        self.alarm0.schedule(duration).unwrap();
+        self.alarm0
+            .schedule(HalMicrosDurationU32::from_ticks(duration.as_ticks()))
+            .unwrap();
     }
 
     pub fn alarm0_clear_interrupt(&mut self) {

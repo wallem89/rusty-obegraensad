@@ -22,7 +22,7 @@ use obegraensad_core::{
 
 esp_bootloader_esp_idf::esp_app_desc!();
 
-const FRAME_AFTER_ANIMATION_SWITCH: MicrosDurationU32 = MicrosDurationU32::millis(30);
+const FRAME_AFTER_ANIMATION_SWITCH: MicrosDurationU32 = MicrosDurationU32::from_millis(30);
 
 struct Esp32S3Display<'d> {
     clock: Output<'d>,
@@ -144,7 +144,7 @@ fn main() -> ! {
     let animations: [&mut dyn Animation; ANIMATION_COUNT] =
         [&mut animation_leaves, &mut animation_empty];
     let mut current_animation_index = 0;
-    let mut current_frame_duration = MicrosDurationU32::millis(10);
+    let mut current_frame_duration = MicrosDurationU32::from_millis(10);
 
     display_driver.write_frame(&display).unwrap();
     display_driver.latch().unwrap();
@@ -169,7 +169,7 @@ fn main() -> ! {
         display_driver.latch().unwrap();
 
         let next_frame_duration = animations[current_animation_index].render_frame(&mut display);
-        delay_micros(current_frame_duration.to_micros());
+        delay_micros(current_frame_duration.as_micros());
         current_frame_duration = next_frame_duration;
     }
 }

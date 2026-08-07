@@ -1,13 +1,6 @@
 [workspace]
-members = [
-    "core",
-    "boards/esp32-s3-devkit-c-1",
-    "boards/pico",
-]
-default-members = [
-    "core",
-    "boards/pico",
-]
+members = ["core", "boards/esp32-s3-devkit-c-1", "boards/pico"]
+default-members = ["core", "boards/pico"]
 resolver = "2"
 
 [workspace.package]
@@ -17,6 +10,6 @@ edition = "2021"
 
 [workspace.dependencies]
 embedded-hal = "1.0"
-fugit = "0.3"
-rand = { version = "0.8", default-features = false }
-rand_xoshiro = "0.6"
+fugit = "0.4.0"
+rand = { version = "0.10.2", default-features = false }
+rand_xoshiro = "0.8.1"
